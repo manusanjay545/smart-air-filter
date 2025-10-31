@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Air Filter Dashboard</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #0a0a0a;
+      color: #fff;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 { color: #00bcd4; }
+    .card {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 20px;
+      margin: 15px auto;
+      width: 300px;
+      box-shadow: 0 0 10px #00bcd4;
+    }
+    button, input[type=range] {
+      width: 80%;
+      margin: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      background-color: #00bcd4;
+      color: #fff;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #0097a7;
+    }
+    #mode {
+      background: #222;
+      color: #0f0;
+      padding: 10px;
+      border-radius: 8px;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🌬 Smart Air Filter Dashboard</h1>
+
+  <div class="card">
+    <h3>🌡 Temperature: <span id="temp">--</span> °C</h3>
+    <h3>💧 Humidity: <span id="hum">--</span> %</h3>
+    <h3>🔥 Gas Level: <span id="gas">--</span></h3>
+    <h3>🌀 Fan Speed: <span id="fan">--</span></h3>
+    <h3>⚙ Mode: <span id="mode">Auto</span></h3>
+  </div>
+
+  <div class="card">
+    <h3>🧭 Control Panel</h3>
+    <button onclick="setMode('auto')">Auto Mode</button>
+    <button onclick="setMode('manual')">Manual Mode</button>
+    <input type="range" id="fanSlider" min="0" max="180" value="90" oninput="updateFanSpeed(this.value)">
+    <p>Set Fan Angle: <span id="angleValue">90</span>°</p>
+  </div>
+
+  <script>
+    const channelID = 3123407;
+    const readKey = "WOUZZELE33NFJSS7";
+
+    async function fetchData() {
+      try {
+        const url = https://api.thingspeak.com/channels/${channelID}/feeds/last.json?api_key=${readKey};
+        const res = await fetch(url);
+        const data = await res.json();
+
+        document.getElementById("temp").innerText = data.field1 || "--";
+        document.getElementById("hum").innerText = data.field2 || "--";
+        document.getElementById("gas").innerText = data.field3 || "--";
+        document.getElementById("fan").innerText = data.field4 || "--";
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
+    }
+
+    function setMode(mode) {
+      document.getElementById("mode").innerText = mode === 'auto' ? "Auto" : "Manual";
+      fetch(https://api.thingspeak.com/update?api_key=OPDHX758K8LI4ZJW&field5=${mode});
+    }
+
+    function updateFanSpeed(value) {
+      document.getElementById("angleValue").innerText = value;
+      fetch(https://api.thingspeak.com/update?api_key=OPDHX758K8LI4ZJW&field4=${value});
+    }
+
+    fetchData();
+    setInterval(fetchData, 15000);
+  </script>
+</body>
+</html>
