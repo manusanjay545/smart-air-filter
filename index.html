@@ -1,36 +1,106 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Air Filter Control</title>
-  <style>
-    body { font-family: Arial; background: #0a0a0a; color: white; text-align: center; }
-    input[type=range]{width:80%;}
-    button{background:#00bcd4;border:none;padding:10px 20px;color:#fff;border-radius:10px;margin:5px;cursor:pointer;}
-    button:hover{background:#0097a7;}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Air Filter Dashboard</title>
+<style>
+  body {
+    font-family: "Segoe UI", sans-serif;
+    background-color: #121212;
+    color: #e0e0e0;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+  }
+  h1 { color: #00bcd4; margin: 20px 0; }
+  .data {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 20px;
+    padding: 10px;
+    border-radius: 12px;
+    background: #1f1f1f;
+    box-shadow: 0 0 10px #000;
+  }
+  .data p { margin: 5px 0; font-size: 1.1rem; }
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px;
+  }
+  button {
+    background: #00bcd4;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  button:hover { background: #0288d1; }
+  .footer {
+    font-size: 0.8rem;
+    margin-top: 20px;
+    color: #888;
+  }
+</style>
 </head>
 <body>
-  <h1>🌬 Smart Air Filter</h1>
-  <p>Mode: <span id="mode">Auto</span></p>
-  <button onclick="setMode(0)">Auto</button>
-  <button onclick="setMode(1)">Manual</button><br><br>
-  <input type="range" min="0" max="255" value="100" id="speedSlider" oninput="updateSpeed(this.value)">
-  <p>Fan Speed: <span id="speedVal">100</span></p>
 
-  <script>
-    const writeKey = "OPDHX758K8LI4ZJW";
+<h1>Smart Air Filter</h1>
+<div class="data">
+  <p>🌡️ Temperature: <span id="temp">--</span> °C</p>
+  <p>💧 Humidity: <span id="hum">--</span> %</p>
+  <p>🧪 Air Purity: <span id="gas">--</span></p>
+  <p>🌀 Fan Mode: <span id="mode">--</span></p>
+</div>
 
-    function setMode(value){
-      fetch(`https://api.thingspeak.com/update?api_key=${writeKey}&field5=${value}`);
-      document.getElementById("mode").innerText = value == 0 ? "Auto" : "Manual";
-    }
+<div class="buttons">
+  <button onclick="setFanMode(0)">OFF</button>
+  <button onclick="setFanMode(1)">LOW</button>
+  <button onclick="setFanMode(2)">MED</button>
+  <button onclick="setFanMode(3)">HIGH</button>
+  <button onclick="setFanMode(4)">AUTO</button>
+</div>
 
-    function updateSpeed(value){
-      document.getElementById("speedVal").innerText = value;
-      fetch(`https://api.thingspeak.com/update?api_key=${writeKey}&field4=${value}`);
-    }
-  </script>
+<p class="footer">Powered by ThingSpeak | Smart IoT Air Filter</p>
+
+<script>
+const sensorChannel = 3147020;
+const sensorReadKey = "SVDD0IYRYX37PUR9";
+const controlWriteKey = "YIIAGXZELMIUZ8PB";
+const controlChannel = 3147039;
+
+// Fetch Sensor Data Every 10 Seconds
+async function updateData() {
+  try {
+    const url = `https://api.thingspeak.com/channels/${sensorChannel}/feeds/last.json?api_key=${sensorReadKey}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    document.getElementById("temp").textContent = data.field1 || "--";
+    document.getElementById("hum").textContent = data.field2 || "--";
+    document.getElementById("gas").textContent = data.field3 || "--";
+  } catch (err) {
+    console.error(err);
+  }
+}
+setInterval(updateData, 10000);
+updateData();
+
+// Set Fan Mode
+async function setFanMode(mode) {
+  document.getElementById("mode").textContent = mode === 0 ? "OFF" :
+    mode === 1 ? "LOW" :
+    mode === 2 ? "MEDIUM" :
+    mode === 3 ? "HIGH" : "AUTO";
+  const url = `https://api.thingspeak.com/update?api_key=${controlWriteKey}&field1=${mode}`;
+  await fetch(url);
+}
+</script>
 </body>
 </html>
