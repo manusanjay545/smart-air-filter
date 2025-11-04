@@ -7,7 +7,7 @@
 <style>
   body {
     background-color: #121212;
-    color: white;
+    color: #ffffff;
     font-family: Arial, sans-serif;
     text-align: center;
     margin: 0;
@@ -15,7 +15,7 @@
   }
   .container {
     padding: 20px;
-    max-width: 400px;
+    max-width: 420px;
     margin: auto;
   }
   .card {
@@ -29,8 +29,8 @@
     color: #00bcd4;
   }
   .data {
-    font-size: 1.2em;
-    margin: 10px 0;
+    font-size: 1.1em;
+    margin: 8px 0;
   }
   .purity {
     font-weight: bold;
@@ -56,11 +56,17 @@
   button:hover {
     background: #0097a7;
   }
+  #modeStatus {
+    font-size: 1.1em;
+    margin-top: 10px;
+    color: #80cbc4;
+  }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>Smart Air Filter</h1>
+
   <div class="card">
     <div class="data">🌡️ Temperature: <span id="temp">--</span> °C</div>
     <div class="data">💧 Humidity: <span id="hum">--</span> %</div>
@@ -73,55 +79,85 @@
     <button onclick="setMode(2)">Mid</button>
     <button onclick="setMode(3)">High</button>
     <button onclick="setMode(4)">Auto</button>
+    <div id="modeStatus">Current Mode: --</div>
   </div>
 </div>
 
 <script>
+  // Channel details
   const sensorChannel = 3147020;
   const controlChannel = 3147039;
-  const readKey = "SVDD0IYRYX37PUR9"; // Sensor read key
-  const writeKey = "YIIAGXZELMIUZ8PB"; // Control write key
 
-  async function fetchData() {
-    const url = `https://api.thingspeak.com/channels/${sensorChannel}/feeds/last.json?api_key=${readKey}`;
-    const res = await fetch(url);
-    const data = await res.json();
+  // API keys
+  const sensorReadKey = "SVDD0IYRYX37PUR9";
+  const controlReadKey = "JNPHVEYTT1DUYFZM";
+  const controlWriteKey = "YIIAGXZELMIUZ8PB";
 
-    const temp = parseFloat(data.field1);
-    const hum = parseFloat(data.field2);
-    const gas = parseFloat(data.field3);
+  // Fetch sensor data
+  async function fetchSensorData() {
+    const url = `https://api.thingspeak.com/channels/${sensorChannel}/feeds/last.json?api_key=${sensorReadKey}`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      const temp = parseFloat(data.field1);
+      const hum = parseFloat(data.field2);
+      const gas = parseFloat(data.field3);
 
-    document.getElementById('temp').innerText = temp.toFixed(1);
-    document.getElementById('hum').innerText = hum.toFixed(1);
+      document.getElementById('temp').innerText = temp.toFixed(1);
+      document.getElementById('hum').innerText = hum.toFixed(1);
 
-    const purityElement = document.getElementById('purity');
-    let level = '';
-    if (gas > 700) {
-      level = 'Poor';
-      purityElement.className = 'purity red';
-    } else if (gas > 400) {
-      level = 'Good';
-      purityElement.className = 'purity yellow';
-    } else {
-      level = 'Best';
-      purityElement.className = 'purity green';
+      const purityElement = document.getElementById('purity');
+      let level = '';
+      if (gas > 700) {
+        level = 'Poor';
+        purityElement.className = 'purity red';
+      } else if (gas > 400) {
+        level = 'Good';
+        purityElement.className = 'purity yellow';
+      } else {
+        level = 'Best';
+        purityElement.className = 'purity green';
+      }
+      purityElement.innerText = level;
+    } catch (err) {
+      console.error("Sensor fetch error:", err);
     }
-    purityElement.innerText = level;
   }
 
+  // Fetch fan mode
+  async function fetchFanMode() {
+    const url = `https://api.thingspeak.com/channels/${controlChannel}/feeds/last.json?api_key=${controlReadKey}`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      const mode = parseInt(data.field1);
+      const modeText = ["Low", "Mid", "High", "Auto"][mode - 1] || "--";
+      document.getElementById("modeStatus").innerText = `Current Mode: ${modeText}`;
+    } catch (err) {
+      console.error("Mode fetch error:", err);
+    }
+  }
+
+  // Set fan mode
   async function setMode(mode) {
     const url = `https://api.thingspeak.com/update.json`;
     await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `api_key=${writeKey}&field1=${mode}`
+      body: `api_key=${controlWriteKey}&field1=${mode}`
     });
     alert(`Fan set to ${["Low","Mid","High","Auto"][mode-1]} mode`);
+    fetchFanMode();
   }
 
-  // Refresh every 15 seconds
-  setInterval(fetchData, 15000);
-  fetchData();
+  // Auto refresh both
+  setInterval(() => {
+    fetchSensorData();
+    fetchFanMode();
+  }, 10000);
+
+  fetchSensorData();
+  fetchFanMode();
 </script>
 </body>
 </html>
