@@ -6,101 +6,122 @@
 <title>Smart Air Filter Dashboard</title>
 <style>
   body {
-    font-family: "Segoe UI", sans-serif;
     background-color: #121212;
-    color: #e0e0e0;
+    color: white;
+    font-family: Arial, sans-serif;
     text-align: center;
     margin: 0;
     padding: 0;
   }
-  h1 { color: #00bcd4; margin: 20px 0; }
+  .container {
+    padding: 20px;
+    max-width: 400px;
+    margin: auto;
+  }
+  .card {
+    background: #1e1e1e;
+    padding: 20px;
+    margin-top: 15px;
+    border-radius: 15px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  }
+  h1 {
+    color: #00bcd4;
+  }
   .data {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin: 20px;
-    padding: 10px;
-    border-radius: 12px;
-    background: #1f1f1f;
-    box-shadow: 0 0 10px #000;
+    font-size: 1.2em;
+    margin: 10px 0;
   }
-  .data p { margin: 5px 0; font-size: 1.1rem; }
-  .buttons {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    margin: 20px;
+  .purity {
+    font-weight: bold;
+    padding: 8px;
+    border-radius: 10px;
+    display: inline-block;
+    width: 100px;
   }
+  .red { background: #ff5252; }
+  .yellow { background: #ffeb3b; color: black; }
+  .green { background: #4caf50; }
   button {
     background: #00bcd4;
     color: white;
     border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-size: 1rem;
+    border-radius: 10px;
+    padding: 10px 15px;
+    margin: 5px;
+    font-size: 1em;
     cursor: pointer;
     transition: 0.3s;
   }
-  button:hover { background: #0288d1; }
-  .footer {
-    font-size: 0.8rem;
-    margin-top: 20px;
-    color: #888;
+  button:hover {
+    background: #0097a7;
   }
 </style>
 </head>
 <body>
+<div class="container">
+  <h1>Smart Air Filter</h1>
+  <div class="card">
+    <div class="data">🌡️ Temperature: <span id="temp">--</span> °C</div>
+    <div class="data">💧 Humidity: <span id="hum">--</span> %</div>
+    <div class="data">🌫️ Air Purity: <span id="purity" class="purity">--</span></div>
+  </div>
 
-<h1>Smart Air Filter</h1>
-<div class="data">
-  <p>🌡️ Temperature: <span id="temp">--</span> °C</p>
-  <p>💧 Humidity: <span id="hum">--</span> %</p>
-  <p>🧪 Air Purity: <span id="gas">--</span></p>
-  <p>🌀 Fan Mode: <span id="mode">--</span></p>
+  <div class="card">
+    <h3>🌀 Fan Control</h3>
+    <button onclick="setMode(1)">Low</button>
+    <button onclick="setMode(2)">Mid</button>
+    <button onclick="setMode(3)">High</button>
+    <button onclick="setMode(4)">Auto</button>
+  </div>
 </div>
-
-<div class="buttons">
-  <button onclick="setFanMode(0)">OFF</button>
-  <button onclick="setFanMode(1)">LOW</button>
-  <button onclick="setFanMode(2)">MED</button>
-  <button onclick="setFanMode(3)">HIGH</button>
-  <button onclick="setFanMode(4)">AUTO</button>
-</div>
-
-<p class="footer">Powered by ThingSpeak | Smart IoT Air Filter</p>
 
 <script>
-const sensorChannel = 3147020;
-const sensorReadKey = "SVDD0IYRYX37PUR9";
-const controlWriteKey = "YIIAGXZELMIUZ8PB";
-const controlChannel = 3147039;
+  const sensorChannel = 3147020;
+  const controlChannel = 3147039;
+  const readKey = "SVDD0IYRYX37PUR9"; // Sensor read key
+  const writeKey = "YIIAGXZELMIUZ8PB"; // Control write key
 
-// Fetch Sensor Data Every 10 Seconds
-async function updateData() {
-  try {
-    const url = `https://api.thingspeak.com/channels/${sensorChannel}/feeds/last.json?api_key=${sensorReadKey}`;
+  async function fetchData() {
+    const url = `https://api.thingspeak.com/channels/${sensorChannel}/feeds/last.json?api_key=${readKey}`;
     const res = await fetch(url);
     const data = await res.json();
-    document.getElementById("temp").textContent = data.field1 || "--";
-    document.getElementById("hum").textContent = data.field2 || "--";
-    document.getElementById("gas").textContent = data.field3 || "--";
-  } catch (err) {
-    console.error(err);
-  }
-}
-setInterval(updateData, 10000);
-updateData();
 
-// Set Fan Mode
-async function setFanMode(mode) {
-  document.getElementById("mode").textContent = mode === 0 ? "OFF" :
-    mode === 1 ? "LOW" :
-    mode === 2 ? "MEDIUM" :
-    mode === 3 ? "HIGH" : "AUTO";
-  const url = `https://api.thingspeak.com/update?api_key=${controlWriteKey}&field1=${mode}`;
-  await fetch(url);
-}
+    const temp = parseFloat(data.field1);
+    const hum = parseFloat(data.field2);
+    const gas = parseFloat(data.field3);
+
+    document.getElementById('temp').innerText = temp.toFixed(1);
+    document.getElementById('hum').innerText = hum.toFixed(1);
+
+    const purityElement = document.getElementById('purity');
+    let level = '';
+    if (gas > 700) {
+      level = 'Poor';
+      purityElement.className = 'purity red';
+    } else if (gas > 400) {
+      level = 'Good';
+      purityElement.className = 'purity yellow';
+    } else {
+      level = 'Best';
+      purityElement.className = 'purity green';
+    }
+    purityElement.innerText = level;
+  }
+
+  async function setMode(mode) {
+    const url = `https://api.thingspeak.com/update.json`;
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `api_key=${writeKey}&field1=${mode}`
+    });
+    alert(`Fan set to ${["Low","Mid","High","Auto"][mode-1]} mode`);
+  }
+
+  // Refresh every 15 seconds
+  setInterval(fetchData, 15000);
+  fetchData();
 </script>
 </body>
 </html>
