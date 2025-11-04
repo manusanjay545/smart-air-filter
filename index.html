@@ -11,7 +11,6 @@
     font-family: Arial, sans-serif;
     text-align: center;
     margin: 0;
-    padding: 0;
   }
   .container {
     padding: 20px;
@@ -84,14 +83,16 @@
 </div>
 
 <script>
-  // Channel details
   const sensorChannel = 3147020;
   const controlChannel = 3147039;
-
-  // API keys
   const sensorReadKey = "SVDD0IYRYX37PUR9";
   const controlReadKey = "JNPHVEYTT1DUYFZM";
   const controlWriteKey = "YIIAGXZELMIUZ8PB";
+
+  // Convert mode number to text
+  function modeText(mode) {
+    return ["Low", "Mid", "High", "Auto"][mode - 1] || "--";
+  }
 
   // Fetch sensor data
   async function fetchSensorData() {
@@ -107,50 +108,47 @@
       document.getElementById('hum').innerText = hum.toFixed(1);
 
       const purityElement = document.getElementById('purity');
-      let level = '';
       if (gas > 700) {
-        level = 'Poor';
+        purityElement.innerText = 'Poor';
         purityElement.className = 'purity red';
       } else if (gas > 400) {
-        level = 'Good';
+        purityElement.innerText = 'Good';
         purityElement.className = 'purity yellow';
       } else {
-        level = 'Best';
+        purityElement.innerText = 'Best';
         purityElement.className = 'purity green';
       }
-      purityElement.innerText = level;
     } catch (err) {
       console.error("Sensor fetch error:", err);
     }
   }
 
-  // Fetch fan mode
+  // Fetch current fan mode
   async function fetchFanMode() {
     const url = `https://api.thingspeak.com/channels/${controlChannel}/feeds/last.json?api_key=${controlReadKey}`;
     try {
       const res = await fetch(url);
       const data = await res.json();
       const mode = parseInt(data.field1);
-      const modeText = ["Low", "Mid", "High", "Auto"][mode - 1] || "--";
-      document.getElementById("modeStatus").innerText = `Current Mode: ${modeText}`;
+      document.getElementById("modeStatus").innerText = `Current Mode: ${modeText(mode)}`;
     } catch (err) {
       console.error("Mode fetch error:", err);
     }
   }
 
-  // Set fan mode
+  // Set fan mode instantly
   async function setMode(mode) {
+    document.getElementById("modeStatus").innerText = `Current Mode: ${modeText(mode)} (updating...)`;
     const url = `https://api.thingspeak.com/update.json`;
     await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: `api_key=${controlWriteKey}&field1=${mode}`
     });
-    alert(`Fan set to ${["Low","Mid","High","Auto"][mode-1]} mode`);
-    fetchFanMode();
+    document.getElementById("modeStatus").innerText = `Current Mode: ${modeText(mode)}`;
   }
 
-  // Auto refresh both
+  // Refresh dashboard
   setInterval(() => {
     fetchSensorData();
     fetchFanMode();
