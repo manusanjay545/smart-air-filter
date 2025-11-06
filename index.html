@@ -57,6 +57,7 @@
   }
   .on-btn.active { background: #4caf50; box-shadow: 0 0 10px #4caf50; }
   .off-btn.active { background: #ff5252; box-shadow: 0 0 10px #ff5252; }
+  .auto-btn.active { background: #ffb300; box-shadow: 0 0 10px #ffb300; }
   #modeStatus {
     font-size: 1.1em;
     margin-top: 10px;
@@ -79,6 +80,7 @@
     <h3>🌀 Fan Control</h3>
     <button class="on-btn" onclick="setMode(1)">ON</button>
     <button class="off-btn" onclick="setMode(0)">OFF</button>
+    <button class="auto-btn" onclick="setMode(2)">AUTO</button>
     <div id="modeStatus">Current Mode: --</div>
   </div>
 </div>
@@ -91,7 +93,9 @@
   const controlWriteKey = "YIIAGXZELMIUZ8PB";
 
   function modeText(mode) {
-    return mode === 1 ? "ON" : "OFF";
+    if (mode === 1) return "ON";
+    if (mode === 2) return "AUTO";
+    return "OFF";
   }
 
   async function fetchSensorData() {
@@ -151,13 +155,15 @@
   function updateButtonStyles(mode) {
     const onBtn = document.querySelector('.on-btn');
     const offBtn = document.querySelector('.off-btn');
-    if (mode === 1) {
-      onBtn.classList.add('active');
-      offBtn.classList.remove('active');
-    } else {
-      offBtn.classList.add('active');
-      onBtn.classList.remove('active');
-    }
+    const autoBtn = document.querySelector('.auto-btn');
+
+    onBtn.classList.remove('active');
+    offBtn.classList.remove('active');
+    autoBtn.classList.remove('active');
+
+    if (mode === 1) onBtn.classList.add('active');
+    else if (mode === 2) autoBtn.classList.add('active');
+    else offBtn.classList.add('active');
   }
 
   setInterval(() => {
