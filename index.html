@@ -46,7 +46,7 @@
     color: white;
     border: none;
     border-radius: 10px;
-    padding: 10px 15px;
+    padding: 10px 20px;
     margin: 5px;
     font-size: 1em;
     cursor: pointer;
@@ -55,6 +55,8 @@
   button:hover {
     background: #0097a7;
   }
+  .on-btn.active { background: #4caf50; box-shadow: 0 0 10px #4caf50; }
+  .off-btn.active { background: #ff5252; box-shadow: 0 0 10px #ff5252; }
   #modeStatus {
     font-size: 1.1em;
     margin-top: 10px;
@@ -70,14 +72,13 @@
     <div class="data">🌡️ Temperature: <span id="temp">--</span> °C</div>
     <div class="data">💧 Humidity: <span id="hum">--</span> %</div>
     <div class="data">🌫️ Air Purity: <span id="purity" class="purity">--</span></div>
+    <div class="data">🧪 Gas Level: <span id="gas">--</span> ppm</div>
   </div>
 
   <div class="card">
     <h3>🌀 Fan Control</h3>
-    <button onclick="setMode(1)">Low</button>
-    <button onclick="setMode(2)">Mid</button>
-    <button onclick="setMode(3)">High</button>
-    <button onclick="setMode(4)">Auto</button>
+    <button class="on-btn" onclick="setMode(1)">ON</button>
+    <button class="off-btn" onclick="setMode(0)">OFF</button>
     <div id="modeStatus">Current Mode: --</div>
   </div>
 </div>
@@ -89,12 +90,10 @@
   const controlReadKey = "JNPHVEYTT1DUYFZM";
   const controlWriteKey = "YIIAGXZELMIUZ8PB";
 
-  // Convert mode number to text
   function modeText(mode) {
-    return ["Low", "Mid", "High", "Auto"][mode - 1] || "--";
+    return mode === 1 ? "ON" : "OFF";
   }
 
-  // Fetch sensor data
   async function fetchSensorData() {
     const url = `https://api.thingspeak.com/channels/${sensorChannel}/feeds/last.json?api_key=${sensorReadKey}`;
     try {
@@ -106,6 +105,7 @@
 
       document.getElementById('temp').innerText = temp.toFixed(1);
       document.getElementById('hum').innerText = hum.toFixed(1);
+      document.getElementById('gas').innerText = gas.toFixed(0);
 
       const purityElement = document.getElementById('purity');
       if (gas > 700) {
@@ -123,20 +123,19 @@
     }
   }
 
-  // Fetch current fan mode
   async function fetchFanMode() {
     const url = `https://api.thingspeak.com/channels/${controlChannel}/feeds/last.json?api_key=${controlReadKey}`;
     try {
       const res = await fetch(url);
       const data = await res.json();
       const mode = parseInt(data.field1);
+      updateButtonStyles(mode);
       document.getElementById("modeStatus").innerText = `Current Mode: ${modeText(mode)}`;
     } catch (err) {
       console.error("Mode fetch error:", err);
     }
   }
 
-  // Set fan mode instantly
   async function setMode(mode) {
     document.getElementById("modeStatus").innerText = `Current Mode: ${modeText(mode)} (updating...)`;
     const url = `https://api.thingspeak.com/update.json`;
@@ -145,10 +144,22 @@
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: `api_key=${controlWriteKey}&field1=${mode}`
     });
+    updateButtonStyles(mode);
     document.getElementById("modeStatus").innerText = `Current Mode: ${modeText(mode)}`;
   }
 
-  // Refresh dashboard
+  function updateButtonStyles(mode) {
+    const onBtn = document.querySelector('.on-btn');
+    const offBtn = document.querySelector('.off-btn');
+    if (mode === 1) {
+      onBtn.classList.add('active');
+      offBtn.classList.remove('active');
+    } else {
+      offBtn.classList.add('active');
+      onBtn.classList.remove('active');
+    }
+  }
+
   setInterval(() => {
     fetchSensorData();
     fetchFanMode();
